@@ -59,13 +59,14 @@ def main():
 
     PROJECTS_YAML = os.environ.get('PROJECTS_YAML',
                                    '/home/gerrit2/projects.yaml')
+    PROJECTS_INI = os.environ.get('PROJECTS_INI',
+                                  '/home/gerrit2/projects.ini')
     GITHUB_SECURE_CONFIG = os.environ.get('GITHUB_SECURE_CONFIG',
                                           '/etc/github/github.secure.config')
 
     secure_config = ConfigParser.ConfigParser()
     secure_config.read(GITHUB_SECURE_CONFIG)
-    (defaults, config) = [config for config in
-                          yaml.load_all(open(PROJECTS_YAML))]
+    configs = [config for config in yaml.load_all(open(PROJECTS_YAML))]
 
     if secure_config.has_option("github", "oauth_token"):
         ghub = github.Github(secure_config.get("github", "oauth_token"))
@@ -75,7 +76,14 @@ def main():
 
     orgs = ghub.get_user().get_orgs()
     orgs_dict = dict(zip([o.login.lower() for o in orgs], orgs))
-    for section in config:
+    if os.path.exists(PROJECTS_INI):
+        # New-style - supports projects.ini
+        projects_yaml_list = configs[0]
+    else:
+        # Old-style - embedded
+        projects_yaml_list = configs[1]
+
+    for section in projects_yaml_list:
         project = section['project']
 
         # Make sure we're supposed to close pull requests for this project:
